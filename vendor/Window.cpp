@@ -11,7 +11,7 @@ axesColor(cfg.axesColor), trigonometry(cfg.trigonometry), chartsColor(cfg.charts
     this->renderWindow = std::make_shared<sf::RenderWindow>(
             cfg.videoMode,
             cfg.title,
-            sf::Style::Close,
+            sf::Style::Default,
             cfg.settings
             );
 
@@ -37,7 +37,9 @@ void Window::loadFont() {
 
 }
 
-void Window::init() {
+void Window::init(const std::shared_ptr<Equation>& _equation) {
+
+    this->equaiton = _equation;
 
     while(renderWindow->isOpen()) {
 
@@ -48,8 +50,11 @@ void Window::init() {
         }
 
         renderWindow->clear(this->background);
+
         this->camera->tick();
         this->tick();
+
+
         renderWindow->display();
 
     }
@@ -229,7 +234,8 @@ void Window::tick() {
     logBackground.setFillColor(sf::Color::White);
     sf::Text log;
     log.setFont(this->font);
-    log.setString("Scale: " + std::to_string(this->camera->getScale()) + "\nx: " + std::to_string(this->camera->getRawPosition().x) + "\ny: " + std::to_string(this->camera->getRawPosition().y));
+    log.setString("x: " + std::to_string(this->camera->getRawPosition().x) + "\ny: " + std::to_string(this->camera->getRawPosition().y)
+    + "\n" + this->equaiton->getRaw());
     log.setCharacterSize(18);
     log.setFillColor(sf::Color::Black);
 
@@ -247,15 +253,15 @@ void Window::renderCharts() {
     const sf::Vector2<unsigned int> windowSize = this->renderWindow->getSize();
 
     float lastX = -(float) windowSize.x / this->camera->getScale() / 2 - this->camera->getRawPosition().x;
-    float lastY = -sin(4*lastX)/sin(5*lastX);
+    float lastY = -lastX * lastX;
 
     for(
             float x = -((float) windowSize.x / this->camera->getScale() / 2) - this->camera->getRawPosition().x;
             x <= (float) windowSize.x / this->camera->getScale() / 2 - this->camera->getRawPosition().x;
     )
     {
-        x += 0.001;
-        float y = -sin(4*x)/sin(5*x);
+        x += 0.002;
+        float y = -x * x;
 
 
         sf::Vertex line[] = {
@@ -276,7 +282,7 @@ void Window::renderCharts() {
 
         };
 
-        if(abs(y - lastY) >= 100) {
+        if(abs(y - lastY) >= 10) {
             lastX = x;
             lastY = y;
             continue;
@@ -350,4 +356,67 @@ void Window::eventListener(const sf::Event &event) {
 
 float Window::getCellSize() {
     return this->camera->getScale() * (float) cellSize;
+}
+
+std::string Window::input() {
+
+    sf::String playerInput;
+    sf::Text playerText;
+    playerText.setFont(this->font);
+    playerText.setFillColor(sf::Color::Black);
+
+    sf::Text enterText {"Enter equation below", this->font};
+    enterText.setFillColor(sf::Color::Black);
+    enterText.setPosition(
+            (float) this->renderWindow->getSize().x / 2 - enterText.getGlobalBounds().width / 2,
+            (float) this->renderWindow->getSize().y / 2 - enterText.getGlobalBounds().height * 2
+            );
+
+    sf::RectangleShape caret {sf::Vector2f (2, enterText.getGlobalBounds().height)};
+    caret.setFillColor(sf::Color::Black);
+
+    while(this->renderWindow->isOpen()) {
+
+        sf::Event event{};
+        bool entered = false;
+
+        while(this->renderWindow->pollEvent(event)) {
+
+            if(event.type == sf::Event::TextEntered) {
+                if(event.key.code == 13) {
+                    entered = true; break;
+                }else if (event.key.code == 8) {
+                    if(playerInput.getSize() >= 1)
+                        playerInput.erase(playerInput.getSize() - 1, playerInput.getSize());
+                }else {
+                    playerInput += event.text.unicode;
+                }
+
+                playerText.setString(playerInput);
+            }else if(event.type == sf::Event::Closed)
+                this->renderWindow->close();
+
+        }
+        if(entered) break;
+
+        playerText.setPosition(
+                (float) this->renderWindow->getSize().x / 2 - playerText.getGlobalBounds().width / 2,
+                (float) this->renderWindow->getSize().y / 2 - playerText.getGlobalBounds().height / 2
+                );
+
+        caret.setPosition(
+                (float) this->renderWindow->getSize().x / 2 + playerText.getGlobalBounds().width / 2,
+                (float) this->renderWindow->getSize().y / 2 - playerText.getGlobalBounds().height / 2
+                );
+        caret.setSize(sf::Vector2f(2, playerText.getGlobalBounds().height));
+
+        this->renderWindow->clear(sf::Color::White);
+        this->renderWindow->draw(enterText);
+        this->renderWindow->draw(playerText);
+        this->renderWindow->draw(caret);
+        this->renderWindow->display();
+
+    }
+
+    return std::string(playerInput);
 }

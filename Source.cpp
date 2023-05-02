@@ -7,7 +7,7 @@ int main() {
 
     Config cfg {
         "Charts",
-        sf::VideoMode(1900, 1000),
+        sf::VideoMode(1280, 720),
         contextSettings,
         sf::Color::White,
         sf::Color(230, 230, 230),
@@ -16,8 +16,13 @@ int main() {
         false
     };
 
+
     std::shared_ptr<Window> window = std::make_shared<Window>(cfg);
-    window->init();
+
+    std::string userInput = window->input();
+    std::shared_ptr<Equation> equation = std::make_shared<Equation>(userInput);
+
+    window->init(equation);
 
     return 0;
 }

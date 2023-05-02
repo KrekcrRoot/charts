@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <Config.h>
+#include <Equation.h>
 #include <Window.h>
 #include <memory>
 
